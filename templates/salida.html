@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}Salida de Material{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-box-arrow-up"></i> Salida de Material (FIFO)</h2>
+            <p class="text-muted">Haga clic en un producto para procesar su salida automáticamente por FIFO</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver al Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Buscador rápido -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" 
+                       class="form-control" 
+                       id="buscarProducto" 
+                       placeholder="Buscar por código o descripción..."
+                       autofocus>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="btn-group" role="group">
+                <input type="radio" class="btn-check" name="filtroTipo" id="filtroTodos" value="" checked>
+                <label class="btn btn-outline-primary" for="filtroTodos">Todos</label>
+                
+                <input type="radio" class="btn-check" name="filtroTipo" id="filtroMazos" value="mazo">
+                <label class="btn btn-outline-primary" for="filtroMazos">Mazos</label>
+                
+                <input type="radio" class="btn-check" name="filtroTipo" id="filtroPanelGrande" value="panel_grande">
+                <label class="btn btn-outline-primary" for="filtroPanelGrande">Paneles Grandes</label>
+                
+                <input type="radio" class="btn-check" name="filtroTipo" id="filtroPanelMediano" value="panel_mediano">
+                <label class="btn btn-outline-primary" for="filtroPanelMediano">Paneles Medianos</label>
+                
+                <input type="radio" class="btn-check" name="filtroTipo" id="filtroPanelPequeño" value="panel_pequeño">
+                <label class="btn btn-outline-primary" for="filtroPanelPequeño">Paneles Pequeños</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid de productos en stock -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-3" id="gridProductos">
+        {% for producto in productos_stock %}
+        <div class="col producto-card" 
+             data-tipo="{{ producto.tipo }}" 
+             data-busqueda="{{ producto.busqueda_texto }}">
+            <div class="card h-100 producto-item tipo-{{ producto.tipo }}" 
+                 onclick="seleccionarProducto('{{ producto.codigo }}', '{{ producto.descripcion_proyecto or producto.descripcion }}', {{ producto.cantidad_total }}, '{{ producto.tipo_display }}')"
+                 style="cursor: pointer; transition: all 0.3s;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="badge bg-{{ producto.tipo_badge }} fs-6">{{ producto.tipo_display }}</span>
+                    <span class="badge bg-dark fs-5">{{ producto.cantidad_total }}</span>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title" style="font-family: 'Courier New', monospace; font-weight: 900;">
+                        {{ producto.codigo }}
+                    </h5>
+                    <p class="card-text text-muted">{{ producto.descripcion_proyecto or producto.descripcion }}</p>
+                    {% if producto.maquinas %}
+                    <div class="mt-2">
+                        <small class="text-primary">
+                            <i class="bi bi-gear-fill"></i> {{ producto.maquinas }}
+                        </small>
+                    </div>
+                    {% endif %}
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="bi bi-geo-alt-fill"></i> {{ producto.ubicaciones_count }} ubicación(es)
+                        </small>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">
+                        <i class="bi bi-clock"></i> Más antiguo: {{ producto.dias_antiguo }} días
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if not productos_stock %}
+    <div class="alert alert-info text-center mt-5">
+        <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+        <h4 class="mt-3">No hay productos en stock</h4>
+        <p>Realice una entrada de material para ver productos disponibles</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal de confirmación de salida -->
+<div class="modal fade" id="modalConfirmarSalida" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-box-arrow-up"></i> Confirmar Salida de Material
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('confirmar_salida') }}" id="formConfirmarSalida">
+                <div class="modal-body">
+                    <input type="hidden" name="stock_id" id="stockIdSeleccionado">
+                    
+                    <!-- Información del producto -->
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">Producto Seleccionado</h6>
+                        <p class="mb-1"><strong>Código:</strong> <span id="modalCodigo"></span></p>
+                        <p class="mb-1"><strong>Descripción:</strong> <span id="modalDescripcion"></span></p>
+                        <p class="mb-0"><strong>Tipo:</strong> <span id="modalTipo"></span></p>
+                    </div>
+
+                    <!-- Ubicación FIFO -->
+                    <div class="card border-danger mb-3">
+                        <div class="card-header bg-danger text-white">
+                            <h6 class="mb-0"><i class="bi bi-geo-alt-fill"></i> Ubicación FIFO (Más Antiguo)</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="infoUbicacionFIFO">
+                                <!-- Se llenará con JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cantidad a retirar -->
+                    <div class="mb-3">
+                        <label for="cantidadSalida" class="form-label">
+                            <strong>Cantidad a retirar:</strong>
+                        </label>
+                        <input type="number" 
+                               class="form-control form-control-lg" 
+                               id="cantidadSalida" 
+                               name="cantidad" 
+                               min="1" 
+                               value="1"
+                               required>
+                        <small class="form-text text-muted">
+                            Disponible en esta ubicación: <strong id="cantidadDisponible">0</strong> unidades
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="bi bi-check-circle-fill"></i> Confirmar Salida
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Búsqueda en tiempo real
+document.getElementById('buscarProducto').addEventListener('input', function() {
+    const busqueda = this.value.toLowerCase();
+    const cards = document.querySelectorAll('.producto-card');
+    
+    cards.forEach(card => {
+        const busquedaTexto = card.dataset.busqueda || '';
+        
+        if (busquedaTexto.includes(busqueda)) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+});
+
+// Filtro por tipo
+document.querySelectorAll('input[name="filtroTipo"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const tipo = this.value;
+        const cards = document.querySelectorAll('.producto-card');
+        
+        cards.forEach(card => {
+            if (tipo === '' || card.dataset.tipo === tipo) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+});
+
+// Hover effect en cards
+document.querySelectorAll('.producto-item').forEach(card => {
+    card.addEventListener('mouseenter', function() {
+        this.style.transform = 'scale(1.05)';
+        this.style.boxShadow = '0 8px 16px rgba(0,0,0,0.2)';
+    });
+    
+    card.addEventListener('mouseleave', function() {
+        this.style.transform = 'scale(1)';
+        this.style.boxShadow = '';
+    });
+});
+
+// Seleccionar producto y buscar FIFO
+function seleccionarProducto(codigo, descripcion, cantidad, tipoDisplay) {
+    document.getElementById('modalCodigo').textContent = codigo;
+    document.getElementById('modalDescripcion').textContent = descripcion;
+    document.getElementById('modalTipo').textContent = tipoDisplay;
+    
+    // Mostrar loading
+    document.getElementById('infoUbicacionFIFO').innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Buscando ubicación FIFO...</p></div>';
+    
+    // Buscar ubicación FIFO via AJAX
+    fetch(`{{ url_for('buscar_fifo') }}?codigo=${encodeURIComponent(codigo)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('stockIdSeleccionado').value = data.stock_id;
+                document.getElementById('cantidadDisponible').textContent = data.cantidad;
+                document.getElementById('cantidadSalida').max = data.cantidad;
+                document.getElementById('cantidadSalida').value = Math.min(1, data.cantidad);
+                
+                document.getElementById('infoUbicacionFIFO').innerHTML = `
+                    <div class="ubicacion-destacada mb-3">
+                        📍 IR A: ${data.ubicacion}
+                    </div>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Ubicación:</dt>
+                        <dd class="col-sm-8"><span class="badge bg-danger fs-6">${data.ubicacion}</span></dd>
+                        
+                        <dt class="col-sm-4">Cantidad:</dt>
+                        <dd class="col-sm-8"><strong>${data.cantidad}</strong> unidades</dd>
+                        
+                        <dt class="col-sm-4">Fecha entrada:</dt>
+                        <dd class="col-sm-8">${data.fecha_entrada}</dd>
+                        
+                        <dt class="col-sm-4">Antigüedad:</dt>
+                        <dd class="col-sm-8"><span class="badge bg-warning">${data.dias_almacenado} días</span></dd>
+                    </dl>
+                `;
+                
+                // Mostrar modal
+                new bootstrap.Modal(document.getElementById('modalConfirmarSalida')).show();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al buscar ubicación FIFO');
+        });
+}
+</script>
+
+<!-- Modal de confirmación de salida exitosa -->
+{% if salida_confirmada %}
+<div class="modal fade show" id="modalExito" tabindex="-1" style="display: block; background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-check-circle-fill"></i> Salida Registrada
+                </h5>
+            </div>
+            <div class="modal-body text-center">
+                <i class="bi bi-check-circle text-success" style="font-size: 4rem;"></i>
+                <h4 class="mt-3">Material Retirado Correctamente</h4>
+                <p class="lead">
+                    Producto: <strong>{{ salida_confirmada.codigo }}</strong><br>
+                    Cantidad: <strong>{{ salida_confirmada.cantidad }}</strong> unidades<br>
+                    Ubicación: <strong>{{ salida_confirmada.ubicacion }}</strong>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <a href="{{ url_for('salida') }}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-plus-circle"></i> Nueva Salida
+                </a>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                    <i class="bi bi-house"></i> Ir al Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

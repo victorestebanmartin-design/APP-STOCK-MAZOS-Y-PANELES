@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Control de Stock{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Encabezado -->
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-clipboard-data"></i> Control de Stock</h2>
+            <p class="text-muted">Vista consolidada del inventario actual</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('exportar_stock') }}" class="btn btn-success me-2">
+                <i class="bi bi-file-earmark-excel"></i> Exportar a Excel
+            </a>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Tarjetas de resumen -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>{{ total_productos }}</h3>
+                    <p class="mb-0">Productos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3>{{ total_unidades }}</h3>
+                    <p class="mb-0">Unidades</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h3>📦 {{ resumen_tipos.mazo.cantidad }}</h3>
+                    <p class="mb-0">Mazos ({{ resumen_tipos.mazo.productos }} ref.)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h3>🔲 {{ resumen_tipos.panel_grande.cantidad }}</h3>
+                    <p class="mb-0">Grandes ({{ resumen_tipos.panel_grande.productos }} ref.)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>◻️ {{ resumen_tipos.panel_mediano.cantidad }}</h3>
+                    <p class="mb-0">Medianos ({{ resumen_tipos.panel_mediano.productos }} ref.)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-secondary text-white">
+                <div class="card-body text-center">
+                    <h3>▫️ {{ resumen_tipos.panel_pequeño.cantidad }}</h3>
+                    <p class="mb-0">Pequeños ({{ resumen_tipos.panel_pequeño.productos }} ref.)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" 
+                       class="form-control" 
+                       id="buscarStock" 
+                       placeholder="Buscar por código, descripción o proyecto...">
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="btn-group w-100" role="group">
+                <input type="radio" class="btn-check" name="filtroTipo" id="filtroTodos" value="" checked>
+                <label class="btn btn-outline-primary" for="filtroTodos">Todos</label>
+                
+                <input type="radio" class="btn-check" name="filtroTipo" id="filtroMazos" value="mazo">
+                <label class="btn btn-outline-primary" for="filtroMazos">📦 Mazos</label>
+                
+                <input type="radio" class="btn-check" name="filtroTipo" id="filtroPanelGrande" value="panel_grande">
+                <label class="btn btn-outline-primary" for="filtroPanelGrande">🔲 Grandes</label>
+                
+                <input type="radio" class="btn-check" name="filtroTipo" id="filtroPanelMediano" value="panel_mediano">
+                <label class="btn btn-outline-primary" for="filtroPanelMediano">◻️ Medianos</label>
+                
+                <input type="radio" class="btn-check" name="filtroTipo" id="filtroPanelPequeño" value="panel_pequeño">
+                <label class="btn btn-outline-primary" for="filtroPanelPequeño">▫️ Pequeños</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de stock -->
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <i class="bi bi-table"></i> Inventario Consolidado
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0" id="tablaStock">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width: 5%;">#</th>
+                            <th style="width: 12%;">Código</th>
+                            <th style="width: 25%;">Descripción / Proyecto</th>
+                            <th style="width: 10%;">Tipo</th>
+                            <th style="width: 8%;" class="text-center">Cantidad</th>
+                            <th style="width: 8%;" class="text-center">Ubicaciones</th>
+                            <th style="width: 25%;">Detalles de Ubicación</th>
+                            <th style="width: 7%;" class="text-center">Días Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for producto in productos_stock %}
+                        <tr class="fila-stock" 
+                            data-tipo="{{ producto.tipo }}"
+                            data-busqueda="{{ producto.codigo|lower }} {{ producto.descripcion|lower }} {{ producto.descripcion_proyecto|lower }}">
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <strong style="font-family: 'Courier New', monospace;">
+                                    {{ producto.codigo }}
+                                </strong>
+                            </td>
+                            <td>
+                                <div>{{ producto.descripcion }}</div>
+                                {% if producto.descripcion_proyecto %}
+                                <small class="text-primary fw-bold">
+                                    <i class="bi bi-folder"></i> {{ producto.descripcion_proyecto }}
+                                </small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if producto.tipo == 'mazo' %}warning text-dark{% elif producto.tipo == 'panel_grande' %}danger{% elif producto.tipo == 'panel_mediano' %}success{% else %}secondary{% endif %} fs-6">
+                                    {{ producto.tipo_icono }} {{ producto.tipo_display }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-{% if producto.nivel == 'alto' %}success{% elif producto.nivel == 'medio' %}warning text-dark{% else %}danger{% endif %} fs-5">
+                                    {{ producto.cantidad_total }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-info fs-6">
+                                    {{ producto.num_ubicaciones }}
+                                </span>
+                            </td>
+                            <td>
+                                <small class="text-muted" style="font-family: 'Courier New', monospace;">
+                                    {{ producto.ubicaciones }}
+                                </small>
+                            </td>
+                            <td class="text-center">
+                                <small class="text-muted">
+                                    {{ producto.dias_antiguedad }} días
+                                </small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer">
+            <small class="text-muted">
+                <strong>Total:</strong> <span id="totalFilas">{{ productos_stock|length }}</span> productos mostrados
+            </small>
+        </div>
+    </div>
+</div>
+
+<script>
+// Búsqueda en tiempo real
+document.getElementById('buscarStock').addEventListener('input', function() {
+    const busqueda = this.value.toLowerCase();
+    aplicarFiltros(busqueda, document.querySelector('input[name="filtroTipo"]:checked').value);
+});
+
+// Filtro por tipo
+document.querySelectorAll('input[name="filtroTipo"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const busqueda = document.getElementById('buscarStock').value.toLowerCase();
+        aplicarFiltros(busqueda, this.value);
+    });
+});
+
+function aplicarFiltros(busqueda, tipo) {
+    const filas = document.querySelectorAll('.fila-stock');
+    let visible = 0;
+    
+    filas.forEach(fila => {
+        const textoFila = fila.dataset.busqueda || '';
+        const tipoFila = fila.dataset.tipo;
+        
+        const cumpleBusqueda = textoFila.includes(busqueda);
+        const cumpleTipo = tipo === '' || tipoFila === tipo;
+        
+        if (cumpleBusqueda && cumpleTipo) {
+            fila.style.display = '';
+            visible++;
+        } else {
+            fila.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('totalFilas').textContent = visible;
+}
+
+// Resaltar filas al hacer hover
+document.querySelectorAll('.fila-stock').forEach(fila => {
+    fila.addEventListener('mouseenter', function() {
+        this.style.backgroundColor = '#f0f8ff';
+    });
+    
+    fila.addEventListener('mouseleave', function() {
+        this.style.backgroundColor = '';
+    });
+});
+</script>
+
+<style>
+.fila-stock {
+    transition: background-color 0.2s;
+}
+
+.table th {
+    position: sticky;
+    top: 0;
+    background-color: #212529;
+    z-index: 10;
+}
+
+.card-body {
+    max-height: 600px;
+    overflow-y: auto;
+}
+</style>
+
+{% endblock %}

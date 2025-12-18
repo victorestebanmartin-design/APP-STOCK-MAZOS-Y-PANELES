@@ -1,0 +1,651 @@
+/* Estilos generales */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+}
+
+/* Grid de baldas - FLEXBOX para tamaños proporcionales */
+.balda-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 10px;
+    background-color: #e9ecef;
+    border-radius: 8px;
+    min-height: 120px;
+}
+
+/* Cuando la balda está llena, eliminar el gap de fondo gris */
+.balda-llena {
+    gap: 5px;
+}
+
+.posicion-cell {
+    border: 2px solid #ced4da;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    padding: 10px;
+    /* Tamaño base: 1 hueco = 20% del total (5 huecos = 100%) */
+    flex: 0 0 20%;
+}
+
+/* Tamaño específico según tipo de producto */
+.posicion-cell.tipo-mazo {
+    /* El ancho lo controla inline style con porcentaje_balda */
+    background-color: #ffe5cc;
+    border-color: #fd7e14;
+}
+
+.posicion-cell.tipo-panel-grande {
+    /* El ancho lo controla inline style con porcentaje_balda */
+    background-color: #cfe2ff;
+    border-color: #0d6efd;
+    border-width: 3px;
+    font-weight: bold;
+}
+
+/* Cuando la balda está llena (100%), los productos se expanden para ocupar TODO */
+.balda-llena .posicion-cell.tipo-panel-grande {
+    flex: 1 1 auto; /* Crecen para llenar todo el espacio */
+    min-width: 0; /* Permite que flex funcione correctamente */
+}
+
+.balda-llena .posicion-cell.tipo-mazo {
+    flex: 1 1 auto; /* Crecen para llenar todo el espacio */
+    min-width: 0;
+}
+
+.balda-llena .posicion-cell.tipo-panel_mediano {
+    flex: 1 1 auto; /* Crecen para llenar todo el espacio */
+    min-width: 0;
+}
+
+.balda-llena .posicion-cell.tipo-panel-pequeño {
+    flex: 1 1 auto; /* Crecen para llenar todo el espacio */
+    min-width: 0;
+}
+
+.posicion-cell.tipo-panel_mediano {
+    /* El ancho lo controla inline style con porcentaje_balda */
+    background-color: #fff3cd !important;
+    border-color: #ffc107 !important;
+    border-width: 2px;
+}
+
+.posicion-cell.tipo-panel-pequeño {
+    /* El ancho lo controla inline style con porcentaje_balda */
+    background-color: #d1ecf1;
+    border-color: #17a2b8;
+}
+
+.posicion-cell.vacia {
+    background-color: #d4edda;
+    border-color: #28a745;
+    /* El ancho lo controla inline style (porcentaje restante) */
+    opacity: 0.5;
+}
+
+.posicion-cell.ocupada {
+    /* El color se define según tipo */
+}
+
+.posicion-cell:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 10;
+    opacity: 1 !important;
+}
+
+.posicion-numero {
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #6c757d;
+}
+
+.posicion-producto {
+    text-align: center;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+/* Barra superior interna para indicar tipo con gradiente */
+.producto-topbar {
+    width: 100%;
+    height: 10px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+}
+
+.producto-topbar.tipo-mazo {
+    background: linear-gradient(135deg, #ffe5cc 0%, #ffd6a8 100%);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+}
+
+.producto-topbar.tipo-panel-grande {
+    background: linear-gradient(135deg, #cfe2ff 0%, #a9c8ff 100%);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+}
+
+.producto-topbar.tipo-panel_mediano {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffe08a 100%);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+}
+
+.producto-topbar.tipo-panel-pequeño {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bfe3ea 100%);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+}
+
+.posicion-producto .codigo-grande {
+    font-size: 1.4rem;
+    font-weight: 900;
+    font-family: 'Courier New', monospace;
+    color: #000;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
+    letter-spacing: -0.5px;
+}
+
+.posicion-producto small {
+    font-size: 0.75rem;
+    line-height: 1.3;
+}
+
+/* Badges de tipo de producto */
+.badge-panel-grande {
+    background-color: #0d6efd;
+}
+
+.badge-panel-pequeño {
+    background-color: #17a2b8;
+}
+
+.badge-mazo {
+    background-color: #fd7e14;
+}
+
+/* Badge para panel mediano (relleno amarillo coherente) */
+.badge-panel-mediano {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+/* Animación para resaltar ubicación */
+.posicion-cell.resaltada {
+    background-color: #fff !important;
+    border-color: #dc3545 !important;
+    border-width: 4px !important;
+    box-shadow: 0 0 20px rgba(220, 53, 69, 0.8);
+    z-index: 100;
+}
+
+@keyframes pulso {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 20px rgba(220, 53, 69, 0.8);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 40px rgba(220, 53, 69, 1);
+    }
+}
+
+.posicion-cell.pulsando {
+    animation: pulso 1s ease-in-out infinite;
+}
+
+/* Flecha apuntando a ubicación */
+.posicion-cell.resaltada::before {
+    content: '👇';
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2rem;
+    animation: bounce 0.5s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        top: -30px;
+    }
+    50% {
+        top: -40px;
+    }
+}
+
+/* Estanterías */
+.estanteria-container {
+    margin-bottom: 20px;
+}
+
+.estanteria-container .card-header {
+    background: linear-gradient(135deg, #212529 0%, #495057 100%);
+}
+
+.estanteria-container .card-header:hover {
+    background: linear-gradient(135deg, #343a40 0%, #6c757d 100%);
+}
+
+.balda-row {
+    border-bottom: 1px solid #dee2e6;
+    padding: 10px 0;
+}
+
+.balda-row:last-child {
+    border-bottom: none;
+}
+
+/* Botón de alerta de sobresaturación */
+.btn-warning.btn-sm {
+    animation: pulsar 2s ease-in-out infinite;
+}
+
+@keyframes pulsar {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+/* Modales */
+.modal-header {
+    background-color: #212529;
+    color: white;
+}
+
+.modal-header .btn-close {
+    filter: invert(1);
+}
+
+/* Formularios */
+.form-label {
+    font-weight: 600;
+}
+
+.barcode-input {
+    font-size: 1.2rem;
+    font-family: 'Courier New', monospace;
+    border: 2px solid #0d6efd;
+}
+
+.barcode-input:focus {
+    border-color: #0b5ed7;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Tablas */
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+/* Botones de acción */
+.btn-action {
+    min-width: 120px;
+}
+
+/* Checklist de reorganización */
+.checklist-item {
+    padding: 15px;
+    margin-bottom: 10px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    background-color: white;
+    transition: all 0.3s ease;
+}
+
+.checklist-item.completada {
+    background-color: #d4edda;
+    border-color: #28a745;
+    opacity: 0.7;
+}
+
+.checklist-item.activa {
+    border-color: #0d6efd;
+    box-shadow: 0 0 10px rgba(13, 110, 253, 0.3);
+}
+
+.checklist-item .checkbox-custom {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+}
+
+/* Indicador de ubicación grande */
+.ubicacion-destacada {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #dc3545;
+    text-align: center;
+    padding: 30px;
+    background: linear-gradient(135deg, #fff 0%, #ffe6e6 100%);
+    border: 4px solid #dc3545;
+    border-radius: 12px;
+    margin: 20px 0;
+    animation: pulso-lento 2s ease-in-out infinite;
+}
+
+@keyframes pulso-lento {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+/* Gráficos */
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin: 20px 0;
+}
+
+/* Badges personalizados */
+.badge-ocupacion-baja {
+    background-color: #28a745;
+}
+
+.badge-ocupacion-media {
+    background-color: #ffc107;
+}
+
+.badge-ocupacion-alta {
+    background-color: #dc3545;
+}
+
+/* Tarjetas de métricas */
+.card-metrica {
+    border-left: 4px solid;
+    transition: transform 0.2s;
+}
+
+.card-metrica:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.card-metrica.info {
+    border-left-color: #17a2b8;
+}
+
+.card-metrica.warning {
+    border-left-color: #ffc107;
+}
+
+.card-metrica.success {
+    border-left-color: #28a745;
+}
+
+.card-metrica.danger {
+    border-left-color: #dc3545;
+}
+
+/* Spinner de carga */
+.spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .balda-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .ubicacion-destacada {
+        font-size: 2rem;
+        padding: 15px;
+    }
+}
+
+@media (max-width: 576px) {
+    .balda-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Efectos de hover en cards */
+.card {
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Estilos de impresión - A4 Horizontal */
+@media print {
+    /* Configuración de página A4 horizontal */
+    @page {
+        size: A4 landscape;
+        margin: 0.6cm;
+    }
+    
+    /* Ocultar elementos innecesarios */
+    .no-print,
+    nav,
+    .navbar,
+    .modal,
+    .toast,
+    h1,
+    .row.mb-4,
+    .btn {
+        display: none !important;
+    }
+    
+    /* Mostrar solo la estantería que se va a imprimir */
+    .row > .col-12 > .estanteria-container {
+        display: none !important;
+    }
+    
+    .row > .col-12 > .estanteria-container.estanteria-imprimir {
+        display: block !important;
+        page-break-after: avoid;
+        margin: 0 !important;
+        width: 100% !important;
+        break-inside: avoid;
+    }
+    
+    .estanteria-imprimir .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    .estanteria-imprimir .card-body {
+        display: block !important;
+        padding: 15px !important;
+    }
+    
+    .estanteria-imprimir .balda-row {
+        display: block !important;
+        margin-bottom: 15px !important;
+        page-break-inside: avoid;
+    }
+    
+    /* Asegurar que el collapse esté expandido */
+    .collapse,
+    .collapse.show {
+        display: block !important;
+        height: auto !important;
+        visibility: visible !important;
+    }
+    
+    /* Asegurar que las filas y columnas se muestren */
+    .row {
+        display: flex !important;
+        flex-wrap: wrap !important;
+    }
+    
+    .col-1,
+    .col-2,
+    .col-9,
+    .col-auto {
+        display: block !important;
+    }
+    
+    /* Ajustar header de estantería */
+    .card-header {
+        background-color: #343a40 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        padding: 10px 15px !important;
+    }
+    
+    /* Ajustar grid de baldas para impresión */
+    .balda-grid {
+        page-break-inside: avoid;
+        min-height: auto;
+        padding: 4px;
+        gap: 4px;
+    }
+    
+    /* Mantener colores de productos */
+    .posicion-cell {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        page-break-inside: avoid;
+        border-width: 2px !important;
+    }
+    
+    /* Mantener colores de fondo por tipo */
+    .posicion-cell.tipo-mazo {
+        background-color: #ffe5cc !important;
+    }
+    
+    .posicion-cell.tipo-panel-grande {
+        background-color: #cfe2ff !important;
+    }
+    
+    .posicion-cell.tipo-panel_mediano {
+        background-color: #fff3cd !important;
+    }
+    
+    .posicion-cell.tipo-panel-pequeño {
+        background-color: #d1ecf1 !important;
+    }
+    
+    .posicion-cell.vacia {
+        background-color: #d4edda !important;
+    }
+    
+    /* Mantener gradientes de top bar */
+    .producto-topbar {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    /* Ajustar tamaño de fuente para impresión */
+    .codigo-grande {
+        font-size: 1rem !important;
+        letter-spacing: 0 !important;
+    }
+
+    /* Reducir padding y tamaño de celdas para que entre en A4 */
+    .posicion-cell {
+        padding: 6px !important;
+        border-radius: 6px !important;
+    }
+    .posicion-producto {
+        gap: 4px !important;
+    }
+    .posicion-producto small {
+        font-size: 0.68rem !important;
+    }
+    .producto-topbar {
+        height: 8px !important;
+        border-radius: 5px !important;
+        margin-bottom: 4px !important;
+    }
+    .badge {
+        font-size: 0.75rem !important;
+    }
+    .badge[style*="font-size"] {
+        font-size: 1.1rem !important;
+    }
+    .progress {
+        height: 12px !important;
+    }
+
+    /* Escala global para asegurar cabida en A4 */
+    .print-only {
+        zoom: 0.85; /* Chrome/Edge */
+        transform: scale(0.85);
+        transform-origin: top left;
+    }
+    
+    /* Ocultar progress bars y reorganizar botones */
+    .progress,
+    .btn-warning.btn-sm {
+        display: none !important;
+    }
+    
+    /* Ajustar filas de baldas */
+    .balda-row {
+        page-break-inside: avoid;
+        margin-bottom: 15px !important;
+    }
+    
+    /* Mantener badges visibles */
+    .badge {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+/* Estilo para código de barras escaneado */
+.codigo-escaneado {
+    background-color: #d4edda;
+    border-color: #28a745;
+    animation: flash 0.5s ease-in-out;
+}
+
+@keyframes flash {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Estilos para grid de salida */
+.producto-item.tipo-mazo {
+    border-left: 4px solid #fd7e14;
+}
+
+.producto-item.tipo-panel_grande {
+    border-left: 4px solid #0d6efd;
+}
+
+.producto-item.tipo-panel_mediano {
+    border-left: 4px solid #ffc107;
+}
+
+.producto-item.tipo-panel_pequeño {
+    border-left: 4px solid #17a2b8;
+}
+

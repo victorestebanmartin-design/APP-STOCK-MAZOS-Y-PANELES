@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Movimientos{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-clock-history"></i> Historial de Movimientos
+        </h1>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('historial') }}" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Desde</label>
+                        <input type="date" class="form-control" name="fecha_desde" 
+                               value="{{ filtros.fecha_desde or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Hasta</label>
+                        <input type="date" class="form-control" name="fecha_hasta" 
+                               value="{{ filtros.fecha_hasta or '' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Tipo</label>
+                        <select class="form-select" name="tipo">
+                            <option value="">Todos</option>
+                            <option value="entrada" {% if filtros.tipo == 'entrada' %}selected{% endif %}>Entrada</option>
+                            <option value="salida" {% if filtros.tipo == 'salida' %}selected{% endif %}>Salida</option>
+                            <option value="reubicacion" {% if filtros.tipo == 'reubicacion' %}selected{% endif %}>Reubicación</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Producto</label>
+                        <input type="text" class="form-control" name="producto" 
+                               value="{{ filtros.producto or '' }}" placeholder="Código">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="bi bi-funnel"></i> Filtrar
+                        </button>
+                        <a href="{{ url_for('historial') }}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i>
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Botón exportar -->
+<div class="row mb-3">
+    <div class="col-12">
+        <a href="{{ url_for('historial_exportar') }}" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel"></i> Exportar a Excel
+        </a>
+    </div>
+</div>
+
+<!-- Tabla de movimientos -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Fecha/Hora</th>
+                                <th>Tipo</th>
+                                <th>Producto</th>
+                                <th>Origen</th>
+                                <th>Destino</th>
+                                <th>Cantidad</th>
+                                <th>Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mov in movimientos %}
+                            <tr>
+                                <td>{{ mov.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if mov.tipo == 'entrada' %}bg-success
+                                        {% elif mov.tipo == 'salida' %}bg-primary
+                                        {% else %}bg-warning{% endif %}">
+                                        {{ mov.tipo.upper() }}
+                                    </span>
+                                </td>
+                                <td><strong>{{ mov.producto_codigo }}</strong></td>
+                                <td>{{ mov.ubicacion_origen or '-' }}</td>
+                                <td>{{ mov.ubicacion_destino or '-' }}</td>
+                                <td><span class="badge bg-secondary">{{ mov.cantidad }}</span></td>
+                                <td><small>{{ mov.observaciones or '' }}</small></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted">No hay movimientos registrados</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <p class="text-muted mt-3">
+                    Mostrando {{ movimientos|length }} movimientos
+                    {% if filtros.fecha_desde or filtros.fecha_hasta or filtros.tipo or filtros.producto %}
+                    (filtrados)
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

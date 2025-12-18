@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}Reportes y Métricas{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-bar-chart"></i> Reportes y Métricas
+        </h1>
+    </div>
+</div>
+
+<!-- Métricas de eficiencia -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card card-metrica info">
+            <div class="card-body">
+                <h6 class="text-muted">Baldas Actuales</h6>
+                <h2>{{ eficiencia.baldas_actuales }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-metrica success">
+            <div class="card-body">
+                <h6 class="text-muted">Baldas Óptimas</h6>
+                <h2>{{ eficiencia.baldas_optimas }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-metrica warning">
+            <div class="card-body">
+                <h6 class="text-muted">Baldas Desperdiciadas</h6>
+                <h2>{{ eficiencia.baldas_desperdiciadas }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-metrica danger">
+            <div class="card-body">
+                <h6 class="text-muted">Eficiencia</h6>
+                <h2>{{ eficiencia.porcentaje_eficiencia|round(1) }}%</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Botón optimizar -->
+{% if eficiencia.baldas_desperdiciadas > 0 %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <h5><i class="bi bi-exclamation-triangle"></i> Optimización Disponible</h5>
+            <p>Se pueden liberar <strong>{{ eficiencia.baldas_desperdiciadas }} baldas</strong> reorganizando el stock.</p>
+            <form method="POST" action="{{ url_for('reportes_optimizar') }}" style="display:inline">
+                <button type="submit" class="btn btn-warning" 
+                        onclick="return confirmarAccion('¿Iniciar reorganización global del stock?')">
+                    <i class="bi bi-shuffle"></i> Generar Plan de Optimización
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Gráfico de ocupación por estantería -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Ocupación por Estantería</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="chartOcupacion"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Resumen de Ocupación</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Estantería</th>
+                            <th>Baldas Ocupadas</th>
+                            <th>Total</th>
+                            <th>%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for est in ocupacion_estanterias %}
+                        <tr>
+                            <td><strong>Estantería {{ est.estanteria }}</strong></td>
+                            <td>{{ est.baldas_ocupadas }}</td>
+                            <td>{{ est.baldas_totales }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if est.porcentaje < 50 %}bg-success
+                                    {% elif est.porcentaje < 80 %}bg-warning
+                                    {% else %}bg-danger{% endif %}">
+                                    {{ est.porcentaje }}%
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stock actual por producto -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Stock Actual por Producto</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Producto</th>
+                                <th>Tipo</th>
+                                <th>Cantidad Total</th>
+                                <th>Ubicaciones</th>
+                                <th>Antigüedad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prod in productos_stock %}
+                            <tr>
+                                <td><strong>{{ prod.codigo }}</strong></td>
+                                <td>{{ prod.denominacion }}</td>
+                                <td><span class="badge bg-secondary">{{ prod.tipo }}</span></td>
+                                <td><span class="badge bg-primary fs-6">{{ prod.cantidad_total }}</span></td>
+                                <td>
+                                    <small>
+                                        {% for ubi in prod.ubicaciones %}
+                                        <span class="badge bg-light text-dark">
+                                            {{ ubi.ubicacion }} ({{ ubi.cantidad }})
+                                        </span>
+                                        {% endfor %}
+                                    </small>
+                                </td>
+                                <td>
+                                    <small>
+                                        Min: {{ prod.dias_min }}d | Max: {{ prod.dias_max }}d
+                                    </small>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">No hay stock en almacén</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Gráfico de ocupación por estantería
+const ctx = document.getElementById('chartOcupacion');
+const ocupacionData = {
+    labels: [
+        {% for est in ocupacion_estanterias %}
+        'Estantería {{ est.estanteria }}',
+        {% endfor %}
+    ],
+    datasets: [
+        {
+            label: 'Baldas Ocupadas',
+            data: [
+                {% for est in ocupacion_estanterias %}
+                {{ est.baldas_ocupadas }},
+                {% endfor %}
+            ],
+            backgroundColor: 'rgba(255, 99, 132, 0.5)',
+            borderColor: 'rgb(255, 99, 132)',
+            borderWidth: 1
+        },
+        {
+            label: 'Baldas Libres',
+            data: [
+                {% for est in ocupacion_estanterias %}
+                {{ est.baldas_totales - est.baldas_ocupadas }},
+                {% endfor %}
+            ],
+            backgroundColor: 'rgba(75, 192, 192, 0.5)',
+            borderColor: 'rgb(75, 192, 192)',
+            borderWidth: 1
+        }
+    ]
+};
+
+new Chart(ctx, {
+    type: 'bar',
+    data: ocupacionData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: false
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

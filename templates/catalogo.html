@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block title %}Catálogo{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-list-ul"></i> Catálogo
+        </h1>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-4" id="catalogoTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="codigos-tab" data-bs-toggle="tab" data-bs-target="#codigos" type="button">
+            <i class="bi bi-box-seam"></i> Códigos Físicos ({{ codigos|length }})
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="maquinas-tab" data-bs-toggle="tab" data-bs-target="#maquinas" type="button">
+            <i class="bi bi-gear"></i> Máquinas ({{ maquinas|length }})
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="catalogoTabContent">
+    <div class="tab-pane fade show active" id="codigos" role="tabpanel">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <input type="text" class="form-control" id="filtroCodigos" 
+                       placeholder="🔍 Buscar por código o descripción..." 
+                       onkeyup="filtrarTabla('filtroCodigos', 'tablaCodigos')">
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalNuevoCodigo">
+                    <i class="bi bi-plus-circle"></i> Nuevo Código Físico
+                </button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped" id="tablaCodigos">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Código</th>
+                                <th>Tipo</th>
+                                <th>Descripción</th>
+                                <th>Máquinas</th>
+                                <th>Stock</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for codigo in codigos %}
+                            <tr {% if not codigo.activo %}class="table-secondary text-muted" style="opacity: 0.6;"{% endif %}>
+                                <td><strong>{{ codigo.codigo }}</strong> {% if not codigo.activo %}<span class="badge bg-secondary">Desactivado</span>{% endif %}</td>
+                                <td><span class="badge bg-primary">{{ codigo.tipo_display }}</span></td>
+                                <td>{{ codigo.descripcion or '-' }}</td>
+                                <td><small>{{ codigo.maquinas_info|join(', ') if codigo.maquinas_info else 'Sin asignar' }}</small></td>
+                                <td><span class="badge bg-success">{{ codigo.stock_total }}</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalEditarCodigo{{ codigo.id }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('catalogo_codigo_toggle', id=codigo.id) }}" style="display: inline;">
+                                        <button type="submit" class="btn btn-sm btn-{{ 'warning' if codigo.activo else 'success' }}" 
+                                                title="{{ 'Desactivar' if codigo.activo else 'Activar' }}">
+                                            <i class="bi bi-{{ 'eye-slash' if codigo.activo else 'eye' }}"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modales de edición de códigos -->
+        {% for codigo in codigos %}
+        <div class="modal fade" id="modalEditarCodigo{{ codigo.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="POST" action="{{ url_for('catalogo_codigo_editar', id=codigo.id) }}">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Editar Código: {{ codigo.codigo }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Código (no editable)</label>
+                                <input type="text" class="form-control" value="{{ codigo.codigo }}" disabled>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Tipo *</label>
+                                <select class="form-select" name="tipo" required>
+                                    <option value="mazo" {% if codigo.tipo == 'mazo' %}selected{% endif %}>Mazo (5/balda - 20%)</option>
+                                    <option value="panel_grande" {% if codigo.tipo == 'panel_grande' %}selected{% endif %}>Panel Grande (2/balda - 50%)</option>
+                                    <option value="panel_mediano" {% if codigo.tipo == 'panel_mediano' %}selected{% endif %}>Panel Mediano (3/balda - 33.33%)</option>
+                                    <option value="panel_pequeño" {% if codigo.tipo == 'panel_pequeño' %}selected{% endif %}>Panel Pequeño (6/balda - 16.67%)</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Descripción</label>
+                                <input type="text" class="form-control" name="descripcion" value="{{ codigo.descripcion or '' }}">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="tab-pane fade" id="maquinas" role="tabpanel">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <input type="text" class="form-control" id="filtroMaquinas" 
+                       placeholder="🔍 Buscar por código o denominación..." 
+                       onkeyup="filtrarTabla('filtroMaquinas', 'tablaMaquinas')">
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalNuevaMaquina">
+                    <i class="bi bi-plus-circle"></i> Nueva Máquina
+                </button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped" id="tablaMaquinas">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Código</th>
+                                <th>Denominación</th>
+                                <th>Códigos Físicos</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for maquina in maquinas %}
+                            <tr>
+                                <td><strong>{{ maquina.codigo }}</strong></td>
+                                <td>{{ maquina.denominacion }}</td>
+                                <td>
+                                    {% for codigo in maquina.codigos_fisicos %}
+                                        <span class="badge bg-secondary">{{ codigo.codigo }}</span>
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalEditarMaquina{{ maquina.id }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modales de edición de máquinas -->
+        {% for maquina in maquinas %}
+        <div class="modal fade" id="modalEditarMaquina{{ maquina.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="POST" action="{{ url_for('catalogo_maquina_editar', id=maquina.id) }}">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Editar Máquina: {{ maquina.codigo }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Código (no editable)</label>
+                                <input type="text" class="form-control" value="{{ maquina.codigo }}" disabled>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Denominación *</label>
+                                <input type="text" class="form-control" name="denominacion" value="{{ maquina.denominacion }}" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal Nuevo Código Físico -->
+<div class="modal fade" id="modalNuevoCodigo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('catalogo_codigo_nuevo') }}">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Nuevo Código Físico</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Código *</label>
+                        <input type="text" class="form-control" name="codigo" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo *</label>
+                        <select class="form-select" name="tipo" required>
+                            <option value="mazo">Mazo (20%)</option>
+                            <option value="panel_grande">Panel Grande (50%)</option>
+                            <option value="panel_mediano">Panel Mediano (33.33%)</option>
+                            <option value="panel_pequeño">Panel Pequeño (16.67%)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <input type="text" class="form-control" name="descripcion">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Crear</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nueva Máquina -->
+<div class="modal fade" id="modalNuevaMaquina" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('catalogo_maquina_nuevo') }}">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Nueva Máquina</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Código *</label>
+                        <input type="text" class="form-control" name="codigo" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Denominación *</label>
+                        <input type="text" class="form-control" name="denominacion" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Crear</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filtrarTabla(inputId, tablaId) {
+    const input = document.getElementById(inputId);
+    const filter = input.value.toUpperCase();
+    const table = document.getElementById(tablaId);
+    const tr = table.getElementsByTagName('tr');
+    
+    for (let i = 1; i < tr.length; i++) {
+        const td = tr[i].getElementsByTagName('td');
+        let found = false;
+        
+        for (let j = 0; j < td.length; j++) {
+            if (td[j]) {
+                const txtValue = td[j].textContent || td[j].innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        
+        tr[i].style.display = found ? '' : 'none';
+    }
+}
+</script>
+{% endblock %}

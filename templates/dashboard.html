@@ -1,0 +1,613 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Stock Mazos y Paneles{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h1 class="mb-4">
+            <i class="bi bi-grid-3x3"></i> Vista de Estanterías
+        </h1>
+        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalResetDB">
+            <i class="bi bi-trash"></i> Resetear Base de Datos
+        </button>
+    </div>
+</div>
+
+<!-- Botones de acción rápida -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <a href="{{ url_for('entrada') }}" class="btn btn-success btn-lg w-100">
+            <i class="bi bi-box-arrow-in-down"></i> Entrada de Material
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{{ url_for('salida') }}" class="btn btn-primary btn-lg w-100">
+            <i class="bi bi-box-arrow-up"></i> Salida de Material
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{{ url_for('control_stock') }}" class="btn btn-info btn-lg w-100">
+            <i class="bi bi-clipboard-data"></i> Control de Stock
+        </a>
+    </div>
+</div>
+
+<!-- Resumen de ocupación -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Baldas</h5>
+                <h2>{{ total_baldas }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <h5 class="card-title">Baldas Llenas</h5>
+                <h2>{{ baldas_ocupadas }}</h2>
+                <small class="text-muted">&gt;90% ocupación</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">Parciales</h5>
+                <h2>{{ baldas_parcialmente_ocupadas }}</h2>
+                <small>10-90% ocupación</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Baldas Libres</h5>
+                <h2>{{ baldas_libres }}</h2>
+                <small>&lt;10% ocupación</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <h5 class="card-title">Ocupación</h5>
+                <h2>{{ ocupacion_porcentaje }}%</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grid de Estanterías -->
+<div class="row">
+    <div class="col-12">
+        {% for estanteria_num in range(1, 5) %}
+        <div class="estanteria-container mb-4">
+            <div class="card">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center" 
+                     data-bs-toggle="collapse" 
+                     data-bs-target="#estanteria{{ estanteria_num }}" 
+                     style="cursor: pointer;">
+                    <h4 class="mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-box"></i> Estantería {{ estanteria_num }}
+                        <span class="badge bg-secondary" data-bs-toggle="tooltip"
+                              title="E = Estantería, B = Balda, P = Posición (izq → der)">
+                            E/B/P ayuda
+                        </span>
+                    </h4>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="badge bg-light text-dark">
+                            {{ estanterias_info[estanteria_num].ocupadas }} / {{ estanterias_info[estanteria_num].total }} baldas ocupadas
+                        </span>
+                        <button class="btn btn-sm btn-light no-print" 
+                                onclick="event.stopPropagation(); window.open('{{ url_for('imprimir_estanteria', num=estanteria_num) }}', '_blank');"
+                                title="Imprimir estantería">
+                            <i class="bi bi-printer-fill"></i> Imprimir
+                        </button>
+                    </div>
+                </div>
+                <div id="estanteria{{ estanteria_num }}" class="collapse show">
+                    <div class="card-body p-3">
+                        <!-- Baldas -->
+                        {% for balda_num in range(1, 5) %}
+                        <div class="balda-row mb-3" data-estanteria="{{ estanteria_num }}" data-balda="{{ balda_num }}">
+                            <div class="row align-items-center">
+                                <div class="col-1">
+                                    <strong>Balda {{ balda_num }}</strong>
+                                    <div class="text-muted" style="font-size: 0.7rem;">
+                                        Posiciones: P1 … P{{ 5 if estanteria_num == 4 else 6 }} (izq → der)
+                                        {% if estanteria_num == 4 %}<span class="badge bg-warning text-dark" style="font-size: 0.6rem;">MAZOS</span>{% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-9">
+                                    <div class="balda-grid {% if baldas_ocupacion.get(balda_key, 0) >= 100 %}balda-llena{% endif %}">
+                                        {% set balda_key = "E%d-B%d"|format(estanteria_num, balda_num) %}
+                                        {% set productos = baldas_productos.get(balda_key, []) %}
+                                        {% set ocupacion = baldas_ocupacion.get(balda_key, 0) %}
+                                        
+                                        {% if productos %}
+                                            {% for producto in productos %}
+                                                {% if producto.get('vacio') %}
+                                                    <!-- Posición vacía individual -->
+                                                    <div class="posicion-cell vacia"
+                                                         style="flex: 0 0 {{ producto.porcentaje_balda }}%"
+                                                         data-bs-toggle="tooltip"
+                                                         data-estanteria="{{ producto.estanteria }}"
+                                                         data-balda="{{ producto.balda }}"
+                                                         data-huecos-disponibles="1"
+                                                         onclick="seleccionarUbicacionDestino(this, {{ producto.estanteria }}, {{ producto.balda }})"
+                                                         title="P{{ producto.posicion }} - Vacío (1 hueco)">
+                                                        <small class="text-muted fw-bold">P{{ producto.posicion }}</small>
+                                                        <small class="text-muted" style="font-size: 0.7rem;">Libre</small>
+                                                    </div>
+                                                {% else %}
+                                                    <!-- Posición ocupada -->
+                                                    <div class="posicion-cell ocupada tipo-{{ producto.tipo }}"
+                                                        style="flex: 0 0 {{ producto.porcentaje_balda|round(2) }}%"
+                                                        data-ubicacion="{{ producto.ubicacion }}"
+                                                        data-bs-toggle="tooltip"
+                                                        title="{{ producto.codigo }} · {{ producto.tipo|replace('_',' ')|title }} · {{ producto.descripcion_proyecto or producto.descripcion }} · {{ producto.cantidad }} uds ({{ '%.1f'|format(producto.huecos) }} huecos)"
+                                                        onclick="mostrarOpcionesReubicacion('{{ producto.ubicacion }}', '{{ producto.codigo }}', '{{ producto.tipo }}', {{ producto.cantidad }}, {{ producto.huecos }})">
+                                                        
+                                                        <div class="posicion-producto">
+                                                            <div class="producto-topbar tipo-{{ producto.tipo }}"></div>
+                                                            <span class="badge badge-{{ producto.tipo_clase }}" style="font-size: 1.8rem;">
+                                                                {{ producto.tipo_icono }}
+                                                            </span>
+                                                            <div class="d-flex justify-content-center mb-1">
+                                                                {% set pos = producto.ubicacion.split('-')[2] if producto.ubicacion and '-' in producto.ubicacion else '' %}
+                                                                {% if pos %}
+                                                                    {% set start = pos %}
+                                                                    {% if producto.tipo == 'panel_grande' %}
+                                                                        {% set end = 'P' ~ ((start[1:]|int) + 2) %}
+                                                                        <span class="badge bg-secondary">{{ start }}-{{ end }}</span>
+                                                                    {% elif producto.tipo == 'panel_mediano' %}
+                                                                        {% set end = 'P' ~ ((start[1:]|int) + 1) %}
+                                                                        <span class="badge bg-secondary">{{ start }}-{{ end }}</span>
+                                                                    {% else %}
+                                                                        <span class="badge bg-secondary">{{ start }}</span>
+                                                                    {% endif %}
+                                                                {% endif %}
+                                                            </div>
+                                                            <div class="codigo-grande d-flex align-items-center justify-content-center gap-2 w-100">
+                                                                <span>{{ producto.tipo_icono }}</span>
+                                                                <span>{{ producto.codigo }}</span>
+                                                            </div>
+                                                            <div class="text-truncate" style="max-width: 220px;">
+                                                                <small class="fw-semibold 
+                                                                    {% if producto.tipo == 'mazo' %}text-warning
+                                                                    {% elif producto.tipo == 'panel_grande' %}text-primary
+                                                                    {% elif producto.tipo == 'panel_mediano' %}text-info
+                                                                    {% else %}text-secondary{% endif %}">
+                                                                    {{ producto.descripcion_proyecto or producto.descripcion }}
+                                                                </small>
+                                                            </div>
+                                                            <small class="text-muted fw-bold">x{{ producto.cantidad }} | {{ '%.1f'|format(producto.huecos) }}h</small>
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% else %}
+                                            <!-- Balda completamente vacía - Mostrar 5 o 6 posiciones -->
+                                            {% set num_posiciones = 5 if estanteria_num == 4 else 6 %}
+                                            {% set porcentaje = 20 if estanteria_num == 4 else 16.67 %}
+                                            {% for pos in range(1, num_posiciones + 1) %}
+                                            <div class="posicion-cell vacia"
+                                                style="flex: 0 0 {{ porcentaje }}%"
+                                                data-bs-toggle="tooltip"
+                                                data-estanteria="{{ estanteria_num }}"
+                                                data-balda="{{ balda_num }}"
+                                                data-huecos-disponibles="1"
+                                                onclick="seleccionarUbicacionDestino(this, {{ estanteria_num|default(0) }}, {{ balda_num|default(0) }})"
+                                                title="P{{ pos }} - Vacío (1 hueco)">
+                                                <small class="text-muted fw-bold">P{{ pos }}</small>
+                                                <small class="text-muted" style="font-size: 0.7rem;">Libre</small>
+                                            </div>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-2">
+                                    {% set ocupacion = baldas_ocupacion.get("E%d-B%d"|format(estanteria_num, balda_num), 0) %}
+                                    {% set balda_key = "E%d-B%d"|format(estanteria_num, balda_num) %}
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="progress flex-grow-1">
+                                            <div class="progress-bar 
+                                                {% if ocupacion == 0 %}bg-success
+                                                {% elif ocupacion < 50 %}bg-info
+                                                {% elif ocupacion < 80 %}bg-warning
+                                                {% elif ocupacion <= 100 %}bg-danger
+                                                {% else %}bg-dark{% endif %}"
+                                                role="progressbar" 
+                                                style="width: {{ [ocupacion, 100]|min }}%"
+                                                aria-valuenow="{{ ocupacion }}" 
+                                                aria-valuemin="0" 
+                                                aria-valuemax="100">
+                                                {{ ocupacion|int }}%
+                                            </div>
+                                        </div>
+                                        {% if ocupacion > 100 %}
+                                        <button class="btn btn-sm btn-warning" 
+                                                onclick="mostrarAlertaReorganizar('{{ balda_key }}', {{ ocupacion|int }})"
+                                                data-bs-toggle="tooltip"
+                                                title="¡Balda sobresaturada! Reorganizar">
+                                            <i class="bi bi-exclamation-triangle-fill"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal detalle ubicación -->
+<div class="modal fade" id="modalDetalleUbicacion" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalle de Ubicación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleUbicacionContent">
+                <!-- Contenido cargado dinámicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal alerta reorganización -->
+<div class="modal fade" id="modalReorganizar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Balda Sobresaturada
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="lead">La balda <strong id="baldaSobresaturada"></strong> está al <strong id="porcentajeOcupacion"></strong>% de ocupación.</p>
+                <p>Una balda tiene capacidad para 5 huecos (100%). La sobresaturación puede dificultar el acceso a los productos.</p>
+                <p class="mb-0"><strong>¿Desea reorganizar esta balda automáticamente?</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <a href="#" id="btnReorganizar" class="btn btn-warning">
+                    <i class="bi bi-shuffle"></i> Reorganizar Ahora
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Panel reubicación manual (flotante, no modal) -->
+<div id="panelReubicar" class="card border-info" style="display: none; position: fixed; top: 80px; right: 20px; width: 320px; z-index: 1050; box-shadow: 0 8px 24px rgba(13, 202, 240, 0.6);">
+    <div class="card-header bg-info text-white">
+        <h6 class="mb-0">
+            <i class="bi bi-arrows-move"></i> Reubicar Producto
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info mb-2 p-2">
+            <small><strong>Código:</strong> <span id="reubicarCodigo"></span></small><br>
+            <small><strong>Actual:</strong> <span id="reubicarUbicacionActual"></span></small><br>
+            <small><strong>Tipo:</strong> <span id="reubicarTipo"></span></small><br>
+            <small><strong>Cantidad:</strong> <span id="reubicarCantidad"></span> uds</small><br>
+            <small><strong>Huecos:</strong> <span id="reubicarHuecos"></span></small>
+        </div>
+        <p class="text-primary mb-2" style="font-size: 0.85rem;">
+            <i class="bi bi-info-circle"></i> Haz clic en un espacio vacío para reubicar.
+        </p>
+        <button class="btn btn-sm btn-secondary w-100" onclick="cancelarReubicacion()">
+            <i class="bi bi-x-circle"></i> Cancelar
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Inicializar tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+});
+
+// Función para mostrar detalle de ubicación
+function mostrarDetalleUbicacion(ubicacion) {
+    fetch(`/api/ubicacion/${ubicacion}`)
+        .then(response => response.json())
+        .then(data => {
+            let html = `<h4>${ubicacion}</h4>`;
+            
+            if (data.stock && data.stock.length > 0) {
+                html += '<table class="table table-striped">';
+                html += '<thead><tr><th>Código</th><th>Proyecto</th><th>Tipo</th><th>Cantidad</th><th>Días</th></tr></thead>';
+                html += '<tbody>';
+                data.stock.forEach(item => {
+                    const tipoEmoji = (t => {
+                        const u = (t || '').toLowerCase();
+                        if (u.includes('mazo')) return '📦';
+                        if (u.includes('grande')) return '🔲';
+                        if (u.includes('mediano')) return '◻️';
+                        if (u.includes('peque')) return '▫️';
+                        return '📁';
+                    })(item.tipo);
+                    html += `<tr>
+                        <td>${item.codigo}</td>
+                        <td>${item.descripcion_proyecto || item.descripcion}</td>
+                        <td><span class=\"badge bg-secondary\">${tipoEmoji} ${item.tipo}</span></td>
+                        <td><span class="badge bg-primary">${item.cantidad}</span></td>
+                        <td>${item.dias_almacenado} días</td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+            } else {
+                html += '<p class="text-muted">Esta ubicación está vacía</p>';
+            }
+            
+            document.getElementById('detalleUbicacionContent').innerHTML = html;
+            new bootstrap.Modal(document.getElementById('modalDetalleUbicacion')).show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cargar detalles de ubicación');
+        });
+}
+
+// Función para resaltar ubicación (usada desde flujo de salida)
+function resaltarUbicacion(ubicacion, duracion = 5000) {
+    const cell = document.querySelector(`[data-ubicacion="${ubicacion}"]`);
+    if (cell) {
+        cell.classList.add('resaltada', 'pulsando');
+        cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        setTimeout(() => {
+            cell.classList.remove('pulsando');
+        }, duracion);
+    }
+}
+
+// Función para mostrar alerta de reorganización
+function mostrarAlertaReorganizar(baldaKey, porcentaje) {
+    document.getElementById('baldaSobresaturada').textContent = baldaKey;
+    document.getElementById('porcentajeOcupacion').textContent = porcentaje;
+    document.getElementById('btnReorganizar').href = `/reorganizar?balda=${baldaKey}`;
+    new bootstrap.Modal(document.getElementById('modalReorganizar')).show();
+}
+
+// Variables globales para reubicación
+let modoReubicacion = false;
+let datosReubicacion = {};
+
+// Función para mostrar opciones de reubicación
+function mostrarOpcionesReubicacion(ubicacion, codigo, tipo, cantidad, huecos) {
+    datosReubicacion = {
+        ubicacionActual: ubicacion,
+        codigo: codigo,
+        tipo: tipo,
+        cantidad: cantidad,
+        huecos: huecos
+    };
+    
+    document.getElementById('reubicarCodigo').textContent = codigo;
+    document.getElementById('reubicarUbicacionActual').textContent = ubicacion;
+    document.getElementById('reubicarTipo').textContent = tipo;
+    document.getElementById('reubicarCantidad').textContent = cantidad;
+    document.getElementById('reubicarHuecos').textContent = huecos.toFixed(1);
+    
+    modoReubicacion = true;
+    
+    // Resaltar espacios vacíos
+    document.querySelectorAll('.posicion-cell.vacia').forEach(cell => {
+        cell.style.border = '4px solid #0dcaf0';
+        cell.style.cursor = 'pointer';
+        cell.style.backgroundColor = '#d1f2f7';
+        cell.style.position = 'relative';
+        cell.style.zIndex = '5';
+        cell.classList.add('reubicar-target');
+        
+        // Añadir efecto hover
+        cell.addEventListener('mouseenter', function() {
+            if (modoReubicacion) {
+                this.style.backgroundColor = '#a8e6f0';
+                this.style.transform = 'scale(1.02)';
+            }
+        });
+        cell.addEventListener('mouseleave', function() {
+            if (modoReubicacion) {
+                this.style.backgroundColor = '#d1f2f7';
+                this.style.transform = 'scale(1)';
+            }
+        });
+    });
+    
+    // Mostrar panel flotante
+    document.getElementById('panelReubicar').style.display = 'block';
+}
+
+// Función para cancelar reubicación
+function cancelarReubicacion() {
+    modoReubicacion = false;
+    datosReubicacion = {};
+    
+    // Ocultar panel
+    document.getElementById('panelReubicar').style.display = 'none';
+    
+    // Quitar resaltado de espacios vacíos
+    document.querySelectorAll('.posicion-cell.vacia').forEach(cell => {
+        cell.style.border = '';
+        cell.style.cursor = '';
+        cell.style.backgroundColor = '';
+        cell.style.position = '';
+        cell.style.zIndex = '';
+        cell.style.transform = '';
+        cell.classList.remove('reubicar-target');
+    });
+}
+
+// Función para seleccionar ubicación destino
+function seleccionarUbicacionDestino(element, estanteria, balda) {
+    console.log('Click en ubicación destino:', estanteria, balda, 'Modo reubicación:', modoReubicacion);
+    
+    if (!modoReubicacion) {
+        console.log('Modo reubicación no activo, ignorando click');
+        return;
+    }
+    
+    // Nota: La validación de espacio consecutivo se hace en el backend
+    // Ya no validamos aquí porque las posiciones son individuales
+    
+    // Confirmar reubicación
+    if (!confirm(`¿Confirmar reubicación de ${datosReubicacion.codigo} desde ${datosReubicacion.ubicacionActual} a estantería ${estanteria} balda ${balda}?`)) {
+        return;
+    }
+    
+    // Enviar solicitud al backend
+    const formData = new FormData();
+    formData.append('ubicacion_origen', datosReubicacion.ubicacionActual);
+    formData.append('estanteria_destino', estanteria);
+    formData.append('balda_destino', balda);
+    
+    fetch('/reubicar_manual', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('panelReubicar').style.display = 'none';
+            cancelarReubicacion();
+            alert(`✓ ${data.mensaje}`);
+            window.location.href = `/?resaltar=${data.ubicacion_destino}`;
+        } else {
+            alert('❌ Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al reubicar');
+    });
+}
+
+// Función para imprimir estantería específica
+function imprimirEstanteria(numEstanteria) {
+    // Marcar la estantería a imprimir
+    document.querySelectorAll('.estanteria-container').forEach((est, idx) => {
+        if (idx + 1 === numEstanteria) {
+            est.classList.add('estanteria-imprimir');
+            // Asegurar que está expandida
+            const collapse = est.querySelector('.collapse');
+            if (collapse) {
+                collapse.classList.add('show');
+            }
+        } else {
+            est.classList.remove('estanteria-imprimir');
+        }
+    });
+    
+    // Esperar un momento para que se apliquen los cambios antes de imprimir
+    setTimeout(() => {
+        window.print();
+        
+        // Restaurar después de imprimir (cuando se cierra el diálogo)
+        setTimeout(() => {
+            document.querySelectorAll('.estanteria-container').forEach(est => {
+                est.classList.remove('estanteria-imprimir');
+            });
+        }, 100);
+    }, 100);
+}
+</script>
+
+<!-- Modal para resetear base de datos -->
+<div class="modal fade" id="modalResetDB" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Resetear Base de Datos
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formResetDB">
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <h6 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> ¡ADVERTENCIA!</h6>
+                        <p class="mb-0">Esta acción eliminará <strong>TODO el stock</strong> y el <strong>historial de movimientos</strong>. Las estanterías quedarán completamente vacías.</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="claveReset" class="form-label">
+                            <strong>Ingrese la clave de seguridad:</strong>
+                        </label>
+                        <input type="password" 
+                               class="form-control form-control-lg text-center" 
+                               id="claveReset" 
+                               name="clave" 
+                               placeholder="******"
+                               required
+                               autocomplete="off">
+                        <small class="form-text text-muted">Solo el administrador conoce esta clave</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash-fill"></i> Confirmar Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Procesar reset de base de datos
+document.getElementById('formResetDB').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Procesando...';
+    
+    fetch('{{ url_for("reset_database") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('modalResetDB')).hide();
+            alert('✓ ' + data.mensaje);
+            window.location.reload();
+        } else {
+            alert('❌ Error: ' + data.error);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-trash-fill"></i> Confirmar Reset';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al resetear la base de datos');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-trash-fill"></i> Confirmar Reset';
+    });
+});
+</script>
+
+{% endblock %}

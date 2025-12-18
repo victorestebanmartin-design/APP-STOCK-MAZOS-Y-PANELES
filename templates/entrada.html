@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Entrada de Material{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-box-arrow-in-down"></i> Entrada de Material</h2>
+            <p class="text-muted">Seleccione un producto del catálogo para registrar su entrada</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver al Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Buscador rápido -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" 
+                       class="form-control" 
+                       id="buscarProducto" 
+                       placeholder="Buscar por código, descripción o máquina..."
+                       autofocus>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="btn-group" role="group">
+                <input type="radio" class="btn-check" name="filtroTipo" id="filtroTodos" value="" checked>
+                <label class="btn btn-outline-success" for="filtroTodos">Todos</label>
+                
+                <input type="radio" class="btn-check" name="filtroTipo" id="filtroMazos" value="mazo">
+                <label class="btn btn-outline-success" for="filtroMazos">Mazos</label>
+                
+                <input type="radio" class="btn-check" name="filtroTipo" id="filtroPanelGrande" value="panel_grande">
+                <label class="btn btn-outline-success" for="filtroPanelGrande">Paneles Grandes</label>
+                
+                <input type="radio" class="btn-check" name="filtroTipo" id="filtroPanelMediano" value="panel_mediano">
+                <label class="btn btn-outline-success" for="filtroPanelMediano">Paneles Medianos</label>
+                
+                <input type="radio" class="btn-check" name="filtroTipo" id="filtroPanelPequeño" value="panel_pequeño">
+                <label class="btn btn-outline-success" for="filtroPanelPequeño">Paneles Pequeños</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid de productos del catálogo -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-3" id="gridProductos">
+        {% for producto in productos_catalogo %}
+        <div class="col producto-card" 
+             data-tipo="{{ producto.tipo }}" 
+             data-busqueda="{{ producto.busqueda_texto }}">
+            <div class="card h-100 producto-item tipo-{{ producto.tipo }}" 
+                 onclick="seleccionarProducto({{ producto.id }}, '{{ producto.codigo }}', '{{ producto.descripcion }}', '{{ producto.tipo_display }}')"
+                 style="cursor: pointer; transition: all 0.3s;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="badge bg-{{ producto.tipo_badge }} fs-6">{{ producto.tipo_display }}</span>
+                    <span class="badge bg-success fs-5">Stock: {{ producto.stock_actual }}</span>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title" style="font-family: 'Courier New', monospace; font-weight: 900;">
+                        {{ producto.codigo }}
+                    </h5>
+                    <p class="card-text text-muted">{{ producto.descripcion }}</p>
+                    {% if producto.maquinas %}
+                    <div class="mt-2">
+                        <small class="text-primary">
+                            <i class="bi bi-gear-fill"></i> {{ producto.maquinas }}
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-light text-center">
+                    <small class="text-muted">
+                        <i class="bi bi-plus-circle"></i> Click para registrar entrada
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if not productos_catalogo %}
+    <div class="alert alert-info text-center mt-5">
+        <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+        <h4 class="mt-3">No hay productos activos en el catálogo</h4>
+        <p>Añada productos en la sección de catálogo para poder registrar entradas</p>
+        <a href="{{ url_for('catalogo') }}" class="btn btn-primary mt-3">
+            <i class="bi bi-journal-plus"></i> Ir al Catálogo
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal de entrada -->
+<div class="modal fade" id="modalEntrada" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-box-arrow-in-down"></i> Registrar Entrada de Material
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('entrada_procesar') }}" id="formEntrada">
+                <div class="modal-body">
+                    <input type="hidden" name="codigo_fisico_id" id="codigoFisicoId">
+                    
+                    <!-- Información del producto -->
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">Producto Seleccionado</h6>
+                        <p class="mb-1"><strong>Código:</strong> <span id="modalCodigo"></span></p>
+                        <p class="mb-1"><strong>Descripción:</strong> <span id="modalDescripcion"></span></p>
+                        <p class="mb-0"><strong>Tipo:</strong> <span id="modalTipo"></span></p>
+                    </div>
+
+                    <!-- Cantidad a ingresar -->
+                    <div class="mb-3">
+                        <label for="cantidadEntrada" class="form-label">
+                            <strong>Cantidad a ingresar:</strong>
+                        </label>
+                        <input type="number" 
+                               class="form-control form-control-lg" 
+                               id="cantidadEntrada" 
+                               name="cantidad" 
+                               min="1" 
+                               value="1"
+                               required>
+                        <small class="form-text text-muted">
+                            El sistema asignará automáticamente la mejor ubicación disponible
+                        </small>
+                    </div>
+
+                    <!-- Resultado de ubicación -->
+                    <div id="resultadoUbicacion" class="alert alert-success" style="display: none;">
+                        <h6 class="alert-heading"><i class="bi bi-check-circle"></i> Entrada Registrada</h6>
+                        <p id="mensajeResultado" class="mb-0"></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success btn-lg" id="btnConfirmarEntrada">
+                        <i class="bi bi-check-circle-fill"></i> Confirmar Entrada
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Búsqueda en tiempo real
+document.getElementById('buscarProducto').addEventListener('input', function() {
+    const busqueda = this.value.toLowerCase();
+    const cards = document.querySelectorAll('.producto-card');
+    
+    cards.forEach(card => {
+        const busquedaTexto = card.dataset.busqueda || '';
+        
+        if (busquedaTexto.includes(busqueda)) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+});
+
+// Filtro por tipo
+document.querySelectorAll('input[name="filtroTipo"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const tipo = this.value;
+        const cards = document.querySelectorAll('.producto-card');
+        
+        cards.forEach(card => {
+            if (tipo === '' || card.dataset.tipo === tipo) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+});
+
+// Hover effect en cards
+document.querySelectorAll('.producto-item').forEach(card => {
+    card.addEventListener('mouseenter', function() {
+        this.style.transform = 'scale(1.05)';
+        this.style.boxShadow = '0 8px 16px rgba(0,0,0,0.2)';
+    });
+    
+    card.addEventListener('mouseleave', function() {
+        this.style.transform = 'scale(1)';
+        this.style.boxShadow = '';
+    });
+});
+
+// Seleccionar producto
+function seleccionarProducto(id, codigo, descripcion, tipoDisplay) {
+    document.getElementById('codigoFisicoId').value = id;
+    document.getElementById('modalCodigo').textContent = codigo;
+    document.getElementById('modalDescripcion').textContent = descripcion;
+    document.getElementById('modalTipo').textContent = tipoDisplay;
+    document.getElementById('resultadoUbicacion').style.display = 'none';
+    document.getElementById('cantidadEntrada').value = 1;
+    document.getElementById('btnConfirmarEntrada').style.display = 'block';
+    
+    // Mostrar modal
+    new bootstrap.Modal(document.getElementById('modalEntrada')).show();
+}
+
+// Procesar entrada con AJAX
+document.getElementById('formEntrada').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    document.getElementById('btnConfirmarEntrada').disabled = true;
+    document.getElementById('btnConfirmarEntrada').innerHTML = '<span class="spinner-border spinner-border-sm"></span> Procesando...';
+    
+    fetch('{{ url_for("entrada_procesar") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('resultadoUbicacion').style.display = 'block';
+            document.getElementById('mensajeResultado').innerHTML = `
+                <strong>✓ ${data.mensaje}</strong><br>
+                <span class="badge bg-danger fs-6 mt-2">📍 ${data.ubicacion}</span><br>
+                <small class="text-muted mt-2 d-block"><kbd>Enter</kbd> para continuar</small>
+            `;
+            document.getElementById('btnConfirmarEntrada').style.display = 'none';
+            
+            // Esperar Enter para cerrar
+            const handleEnter = (e) => {
+                if (e.key === 'Enter') {
+                    document.removeEventListener('keydown', handleEnter);
+                    window.location.reload();
+                }
+            };
+            document.addEventListener('keydown', handleEnter);
+            
+            // Focus en el documento para capturar el Enter
+            document.body.focus();
+        } else {
+            alert('Error: ' + data.error);
+            document.getElementById('btnConfirmarEntrada').disabled = false;
+            document.getElementById('btnConfirmarEntrada').innerHTML = '<i class="bi bi-check-circle-fill"></i> Confirmar Entrada';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al procesar entrada');
+        document.getElementById('btnConfirmarEntrada').disabled = false;
+        document.getElementById('btnConfirmarEntrada').innerHTML = '<i class="bi bi-check-circle-fill"></i> Confirmar Entrada';
+    });
+});
+</script>
+
+{% endblock %}
