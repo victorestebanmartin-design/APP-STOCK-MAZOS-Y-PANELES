@@ -290,8 +290,8 @@ if __name__ == '__main__':
     print("\n" + "="*50)
     print("🚀 Iniciando aplicación Stock Mazos y Paneles")
     print("="*50)
-    print(f"📍 URL: http://localhost:5000")
+    print(f"📍 URL: http://localhost:5001")
     print(f"🗄️  Base de datos: {Config.SQLALCHEMY_DATABASE_URI}")
     print("="*50 + "\n")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)
