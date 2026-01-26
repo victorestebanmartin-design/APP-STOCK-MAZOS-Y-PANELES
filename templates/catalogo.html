@@ -83,7 +83,7 @@
         <!-- Modales de edición de códigos -->
         {% for codigo in codigos %}
         <div class="modal fade" id="modalEditarCodigo{{ codigo.id }}" tabindex="-1">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <form method="POST" action="{{ url_for('catalogo_codigo_editar', id=codigo.id) }}">
                         <div class="modal-header">
@@ -107,6 +107,15 @@
                             <div class="mb-3">
                                 <label class="form-label">Descripción</label>
                                 <input type="text" class="form-control" name="descripcion" value="{{ codigo.descripcion or '' }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Máquinas Asociadas</label>
+                                <select class="form-select" name="maquinas" multiple size="6">
+                                    {% for maquina in maquinas %}
+                                    <option value="{{ maquina.id }}" {% if maquina in codigo.productos_maquina %}selected{% endif %}>{{ maquina.codigo }} - {{ maquina.denominacion }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">Mantén presionado Ctrl (Cmd en Mac) para seleccionar múltiples máquinas</small>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -172,7 +181,7 @@
         <!-- Modales de edición de máquinas -->
         {% for maquina in maquinas %}
         <div class="modal fade" id="modalEditarMaquina{{ maquina.id }}" tabindex="-1">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <form method="POST" action="{{ url_for('catalogo_maquina_editar', id=maquina.id) }}">
                         <div class="modal-header">
@@ -187,6 +196,15 @@
                             <div class="mb-3">
                                 <label class="form-label">Denominación *</label>
                                 <input type="text" class="form-control" name="denominacion" value="{{ maquina.denominacion }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Códigos Físicos (Subconjuntos)</label>
+                                <select class="form-select" name="codigos_fisicos" multiple size="8">
+                                    {% for codigo in codigos %}
+                                    <option value="{{ codigo.id }}" {% if codigo in maquina.codigos_fisicos %}selected{% endif %}>{{ codigo.codigo }} - {{ codigo.tipo_display }} {% if codigo.descripcion %}({{ codigo.descripcion }}){% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">Mantén presionado Ctrl (Cmd en Mac) para seleccionar múltiples códigos</small>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -203,7 +221,7 @@
 
 <!-- Modal Nuevo Código Físico -->
 <div class="modal fade" id="modalNuevoCodigo" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <form method="POST" action="{{ url_for('catalogo_codigo_nuevo') }}">
                 <div class="modal-header bg-success text-white">
@@ -228,6 +246,15 @@
                         <label class="form-label">Descripción</label>
                         <input type="text" class="form-control" name="descripcion">
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Máquinas Asociadas</label>
+                        <select class="form-select" name="maquinas" multiple size="6">
+                            {% for maquina in maquinas %}
+                            <option value="{{ maquina.id }}">{{ maquina.codigo }} - {{ maquina.denominacion }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-text text-muted">Mantén presionado Ctrl (Cmd en Mac) para seleccionar múltiples máquinas</small>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -240,7 +267,7 @@
 
 <!-- Modal Nueva Máquina -->
 <div class="modal fade" id="modalNuevaMaquina" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <form method="POST" action="{{ url_for('catalogo_maquina_nuevo') }}">
                 <div class="modal-header bg-success text-white">
@@ -255,6 +282,15 @@
                     <div class="mb-3">
                         <label class="form-label">Denominación *</label>
                         <input type="text" class="form-control" name="denominacion" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Códigos Físicos (Subconjuntos)</label>
+                        <select class="form-select" name="codigos_fisicos" multiple size="8">
+                            {% for codigo in codigos %}
+                            <option value="{{ codigo.id }}">{{ codigo.codigo }} - {{ codigo.tipo_display }} {% if codigo.descripcion %}({{ codigo.descripcion }}){% endif %}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-text text-muted">Mantén presionado Ctrl (Cmd en Mac) para seleccionar múltiples códigos</small>
                     </div>
                 </div>
                 <div class="modal-footer">

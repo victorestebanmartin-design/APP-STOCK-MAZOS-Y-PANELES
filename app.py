@@ -286,12 +286,21 @@ if __name__ == '__main__':
     # Inicializar base de datos
     init_db()
     
-    # Ejecutar aplicación
-    print("\n" + "="*50)
-    print("🚀 Iniciando aplicación Stock Mazos y Paneles")
-    print("="*50)
-    print(f"📍 URL: http://localhost:5001")
-    print(f"🗄️  Base de datos: {Config.SQLALCHEMY_DATABASE_URI}")
-    print("="*50 + "\n")
+    # Obtener IP local para mostrar
+    import socket
+    hostname = socket.gethostname()
+    try:
+        local_ip = socket.gethostbyname(hostname)
+    except:
+        local_ip = "No disponible"
     
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    # Ejecutar aplicación
+    print("\n" + "="*60)
+    print("🚀 Iniciando aplicación Stock Mazos y Paneles")
+    print("="*60)
+    print(f"📍 Acceso local:     http://localhost:8080")
+    print(f"🌐 Acceso en red:    http://{local_ip}:8080")
+    print(f"🗄️  Base de datos:    {Config.SQLALCHEMY_DATABASE_URI}")
+    print("="*60 + "\n")
+    
+    app.run(debug=True, host='0.0.0.0', port=8080)

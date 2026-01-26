@@ -836,6 +836,7 @@ def catalogo_codigo_nuevo():
     codigo = request.form.get('codigo', '').strip().upper()
     tipo = request.form.get('tipo', '').strip()
     descripcion = request.form.get('descripcion', '').strip() or None
+    maquinas_ids = request.form.getlist('maquinas')  # Obtener lista de IDs de máquinas seleccionadas
     
     # Validar código único
     existe = CodigoFisico.query.filter_by(codigo=codigo).first()
@@ -848,6 +849,11 @@ def catalogo_codigo_nuevo():
         tipo=tipo,
         descripcion=descripcion
     )
+    
+    # Asociar máquinas seleccionadas
+    if maquinas_ids:
+        maquinas = ProductoMaquina.query.filter(ProductoMaquina.id.in_(maquinas_ids)).all()
+        codigo_fisico.productos_maquina = maquinas
     
     db.session.add(codigo_fisico)
     db.session.commit()
@@ -863,6 +869,14 @@ def catalogo_codigo_editar(id):
     
     codigo.tipo = request.form.get('tipo', '').strip()
     codigo.descripcion = request.form.get('descripcion', '').strip() or None
+    
+    # Actualizar máquinas asociadas
+    maquinas_ids = request.form.getlist('maquinas')
+    if maquinas_ids:
+        maquinas = ProductoMaquina.query.filter(ProductoMaquina.id.in_(maquinas_ids)).all()
+        codigo.productos_maquina = maquinas
+    else:
+        codigo.productos_maquina = []  # Desasociar todas las máquinas si no hay ninguna seleccionada
     
     db.session.commit()
     
@@ -905,6 +919,7 @@ def catalogo_maquina_nuevo():
     """Agregar nueva máquina/producto"""
     codigo = request.form.get('codigo', '').strip().upper()
     denominacion = request.form.get('denominacion', '').strip()
+    codigos_fisicos_ids = request.form.getlist('codigos_fisicos')  # Obtener lista de IDs de códigos seleccionados
     
     # Validar código único
     existe = ProductoMaquina.query.filter_by(codigo=codigo).first()
@@ -916,6 +931,11 @@ def catalogo_maquina_nuevo():
         codigo=codigo,
         denominacion=denominacion
     )
+    
+    # Asociar códigos físicos seleccionados
+    if codigos_fisicos_ids:
+        codigos = CodigoFisico.query.filter(CodigoFisico.id.in_(codigos_fisicos_ids)).all()
+        maquina.codigos_fisicos = codigos
     
     db.session.add(maquina)
     db.session.commit()
@@ -930,6 +950,14 @@ def catalogo_maquina_editar(id):
     maquina = ProductoMaquina.query.get_or_404(id)
     
     maquina.denominacion = request.form.get('denominacion', '').strip()
+    
+    # Actualizar códigos físicos asociados
+    codigos_fisicos_ids = request.form.getlist('codigos_fisicos')
+    if codigos_fisicos_ids:
+        codigos = CodigoFisico.query.filter(CodigoFisico.id.in_(codigos_fisicos_ids)).all()
+        maquina.codigos_fisicos = codigos
+    else:
+        maquina.codigos_fisicos = []  # Desasociar todos los códigos si no hay ninguno seleccionado
     
     db.session.commit()
     
