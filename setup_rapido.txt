@@ -1,0 +1,22 @@
+COMANDOS PARA RASPBERRY PI
+==========================
+
+1. Instalar git:
+sudo apt-get update && sudo apt-get install git -y
+
+2. Clonar repositorio:
+cd /home/pi
+git clone https://github.com/victorestebanmartin-design/APP-STOCK-MAZOS-Y-PANELES.git stock-app
+
+3. Instalar:
+cd stock-app
+bash instalar_raspberry.sh
+
+4. Iniciar:
+bash iniciar_raspberry.sh
+
+===========================
+Para actualizaciones futuras:
+cd /home/pi/stock-app
+git pull
+bash iniciar_raspberry.sh
